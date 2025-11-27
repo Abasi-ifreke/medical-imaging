@@ -1,0 +1,20 @@
+services:
+  med-app:
+    build:
+      context: .  # Build from root to access data folder
+      dockerfile: ./app/Dockerfile
+    container_name: med-app
+    ports:
+      - "8000:8000"
+    environment:
+      - API_URL=http://med-app:8000
+
+  med-frontend:
+    build: ./frontend  # Adjust the path if needed
+    container_name: med-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://med-app:8000/predict
+    depends_on:
+      - med-app
