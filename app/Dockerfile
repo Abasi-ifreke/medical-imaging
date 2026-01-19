@@ -1,5 +1,5 @@
 # Stage 1: Build dependencies and train model
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
+FROM tensorflow/tensorflow:2.17.0-gpu-jupyter AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./app/train.py .
 COPY ./data ./data
 
-# Train all three models (xray, lung, pneumonia)
+# Train all pneumonia model
 RUN python train.py
 
 # Stage 2: Runtime environment (smaller image)
@@ -28,10 +28,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy only the necessary files from the build stage
 COPY ./app/backend.py .
 
-# Copy all three trained models
-COPY --from=builder /app/xray_model.pth .
-COPY --from=builder /app/lung_model.pth .
-COPY --from=builder /app/pneumonia_model.pth .
+# Copy trained model
+COPY --from=builder /app/pneumonia_model.h5 .
 
 # Expose API port
 EXPOSE 8000

@@ -1,66 +1,142 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-from torchvision import models
-from torch.utils.data import DataLoader
-import os
+# train.py
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+import numpy as np
 
-# Common training function
-def train_model(model, train_loader, val_loader, save_path, epochs=2):
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+# -----------------------------
+# 1. Configuration
+# -----------------------------
+np.random.seed(42)
+tf.random.set_seed(42)
 
-    model.train()
-    for epoch in range(epochs):
-        total_loss = 0
-        correct = 0
-        total = 0
+TRAIN_DIR = './data/train'
+VAL_DIR = './data/val'
 
-        for images, labels in train_loader:
-            optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+IMG_SIZE = (224, 224)
+BATCH_SIZE = 32
+EPOCHS = 10
+LEARNING_RATE = 0.0001
 
-            total_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
+# -----------------------------
+# 2. Data Generators
+# -----------------------------
+train_gen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.15,
+    zoom_range=0.15,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
 
-        print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(train_loader):.4f}, Accuracy: {correct/total * 100:.2f}%")
+val_gen = ImageDataGenerator(rescale=1./255)
 
-    torch.save(model.state_dict(), save_path)
-    print(f"✅ Model training complete. Saved as {save_path}")
+train_ds = train_gen.flow_from_directory(
+    TRAIN_DIR,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    shuffle=True
+)
 
-# Define transforms
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+val_ds = val_gen.flow_from_directory(
+    VAL_DIR,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    shuffle=False
+)
+
+# -----------------------------
+# 3. Build Model
+# -----------------------------
+model = Sequential([
+    Conv2D(32, (3, 3), activation='relu', input_shape=(*IMG_SIZE, 3)),
+    BatchNormalization(),
+    MaxPooling2D(2, 2),
+    Dropout(0.25),
+
+    Conv2D(64, (3, 3), activation='relu'),
+    BatchNormalization(),
+    MaxPooling2D(2, 2),
+    Dropout(0.25),
+
+    Conv2D(128, (3, 3), activation='relu'),
+    BatchNormalization(),
+    MaxPooling2D(2, 2),
+    Dropout(0.25),
+
+    Flatten(),
+    Dense(128, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.5),
+    Dense(1, activation='sigmoid')
 ])
 
-# Define training tasks
-def train_all():
-    tasks = [
-        ("data/xray/train", "data/xray/val", "xray_model.pth"),
-        ("data/lung/train", "data/lung/val", "lung_model.pth"),
-        ("data/chest_xray/train", "data/chest_xray/val", "pneumonia_model.pth")
-    ]
+model.compile(
+    optimizer=Adam(learning_rate=LEARNING_RATE),
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
 
-    for train_root, val_root, model_path in tasks:
-        print(f"\n🔧 Training model: {model_path}")
-        train_data = datasets.ImageFolder(root=train_root, transform=transform)
-        val_data = datasets.ImageFolder(root=val_root, transform=transform)
-        train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
-        val_loader = DataLoader(val_data, batch_size=32, shuffle=False)
+# -----------------------------
+# 4. Callbacks
+# -----------------------------
+checkpoint = ModelCheckpoint(
+    'best_model.h5',
+    monitor='val_accuracy',
+    save_best_only=True,
+    mode='max',
+    verbose=1
+)
 
-        model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        model.fc = nn.Linear(model.fc.in_features, 2)
+reduce_lr = ReduceLROnPlateau(
+    monitor='val_loss',
+    factor=0.5,
+    patience=3,
+    min_lr=1e-6,
+    verbose=1
+)
 
-        train_model(model, train_loader, val_loader, save_path=model_path, epochs=2)
+early_stop = EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True,
+    verbose=1
+)
 
-if __name__ == "__main__":
-    train_all()
+callbacks = [checkpoint, reduce_lr, early_stop]
+
+# -----------------------------
+# 5. Train
+# -----------------------------
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=EPOCHS,
+    callbacks=callbacks,
+    verbose=1
+)
+
+print("\nTraining complete!")
+print(f"Final Training Accuracy: {history.history['accuracy'][-1]:.4f}")
+print(f"Final Validation Accuracy: {history.history['val_accuracy'][-1]:.4f}")
+
+# -----------------------------
+# 6. Evaluate
+# -----------------------------
+val_loss, val_acc = model.evaluate(val_ds)
+print(f"\nValidation Loss: {val_loss:.4f}")
+print(f"Validation Accuracy: {val_acc:.4f}")
+
+# -----------------------------
+# 7. Save Model
+# -----------------------------
+model.save('pneumonia_model.h5')
+print("Model saved as 'pneumonia_model.h5'")
