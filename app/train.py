@@ -1,4 +1,5 @@
 # train.py
+import os
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
@@ -13,8 +14,18 @@ import numpy as np
 np.random.seed(42)
 tf.random.set_seed(42)
 
-TRAIN_DIR = './data/train'
-VAL_DIR = './data/val'
+# Check if running in Docker or locally
+if os.path.exists('./data/train'):
+    # Running in Docker (data is at ./data)
+    TRAIN_DIR = './data/train'
+    VAL_DIR = './data/val'
+else:
+    # Running locally from app/ directory (data is at ../data)
+    TRAIN_DIR = '../data/train'
+    VAL_DIR = '../data/val'
+
+print(f"Using TRAIN_DIR: {TRAIN_DIR}")
+print(f"Using VAL_DIR: {VAL_DIR}")
 
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32

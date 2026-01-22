@@ -5,7 +5,7 @@ import io
 import os
 
 # Backend URL - can be overridden by environment variable
-API_URL = os.getenv("API_URL", "http://localhost:8000/predict", "http://backend-svc.default.svc.cluster.local:8000/predict")
+API_URL = os.getenv("API_URL", "http://localhost:8000/predict")
 
 # Check backend connectivity
 try:

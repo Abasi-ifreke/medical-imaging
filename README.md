@@ -46,7 +46,7 @@ This will:
 │── 📂 app/                  
     │── backend.py            # FastAPI backend
     │── Dockerfile            # Dockefile for image build
-    │── pneumonia_model.pth   # Trained model
+    │── pneumonia_model.h5    # Trained model
     │── requirements.txt      # Application requirement
     └── train.py              # Script to build a trained model                
 └── 📂 frontend/                  
