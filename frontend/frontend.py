@@ -41,27 +41,22 @@ if uploaded_file is not None:
                     
                     # Display the message if available
                     if result.get('message'):
-                        if result['prediction'] == "Pneumonia":
+                        if result.get('prediction') == "Pneumonia":
                             st.error(f"⚠️ {result['message']}")
-                        elif result['prediction'] == "Normal":
+                        elif result.get('prediction') == "Normal":
                             st.success(f"✅ {result['message']}")
                         else:
                             st.warning(f"ℹ️ {result['message']}")
                     
-                    # Display validation steps
-                    st.write(f"**1. Is X-ray?** {'✅ Yes' if result['is_xray'] else '❌ No'}")
-                    
-                    if result['is_xray']:
-                        st.write(f"**2. Is Lung X-ray?** {'✅ Yes' if result['is_lung_xray'] else '❌ No'}")
+                    # Display diagnosis if available
+                    if result.get('prediction'):
+                        st.write(f"**Diagnosis:** **{result['prediction']}**")
                         
-                        if result['is_lung_xray']:
-                            st.write(f"**3. Pneumonia Diagnosis:** **{result['prediction']}**")
-                            
-                            # Display confidence score with progress bar
-                            if result.get('confidence') is not None:
-                                confidence_percent = result['confidence'] * 100
-                                st.write(f"**Confidence:** {confidence_percent:.1f}%")
-                                st.progress(result['confidence'])
+                        # Display confidence score with progress bar
+                        if result.get('confidence') is not None:
+                            confidence_percent = result['confidence'] * 100
+                            st.write(f"**Confidence:** {confidence_percent:.1f}%")
+                            st.progress(result['confidence'])
 
                 else:
                     st.error("❌ Error: Backend failed to process the image.")

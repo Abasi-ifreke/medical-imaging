@@ -38,23 +38,30 @@ async def predict(file: UploadFile = File(...)):
     # -----------------------------
     # Classify pneumonia
     # -----------------------------
-    probs = pneumonia_model.predict(tensor)[0]
-    pneumonia_confidence = float(probs[1])  # Assuming [Normal, Pneumonia]
-    normal_confidence = float(probs[0])
+    # Model outputs single value: 0 (Normal) to 1 (Pneumonia)
+    prediction = pneumonia_model.predict(tensor)[0][0]
+    pneumonia_confidence = float(prediction)
+    normal_confidence = float(1 - prediction)
 
-    if pneumonia_confidence < PNEUMONIA_CONFIDENCE_THRESHOLD and normal_confidence < PNEUMONIA_CONFIDENCE_THRESHOLD:
-        result["message"] = "Unable to make a confident prediction. Please upload a clearer chest X-ray image."
-        result["confidence"] = max(pneumonia_confidence, normal_confidence)
-        return result
-
+    # Determine prediction
     if pneumonia_confidence > normal_confidence:
         result["prediction"] = "Pneumonia"
         result["confidence"] = pneumonia_confidence
-        result["message"] = f"Pneumonia detected with {pneumonia_confidence*100:.1f}% confidence."
+        
+        # Add disclaimer if confidence is low
+        if pneumonia_confidence < PNEUMONIA_CONFIDENCE_THRESHOLD:
+            result["message"] = f"Pneumonia detected with {pneumonia_confidence*100:.1f}% confidence. ⚠️ Low confidence - please consult a medical professional for confirmation."
+        else:
+            result["message"] = f"Pneumonia detected with {pneumonia_confidence*100:.1f}% confidence."
     else:
         result["prediction"] = "Normal"
         result["confidence"] = normal_confidence
-        result["message"] = f"No pneumonia detected. Lungs appear normal with {normal_confidence*100:.1f}% confidence."
+        
+        # Add disclaimer if confidence is low
+        if normal_confidence < PNEUMONIA_CONFIDENCE_THRESHOLD:
+            result["message"] = f"No pneumonia detected with {normal_confidence*100:.1f}% confidence. ⚠️ Low confidence - please consult a medical professional for confirmation."
+        else:
+            result["message"] = f"No pneumonia detected. Lungs appear normal with {normal_confidence*100:.1f}% confidence."
 
     return result
 
