@@ -22,20 +22,60 @@ This project implements a deep learning-based classification system that:
 - **Dockerized Deployment**: Uses Docker Compose for easy container orchestration.
 - **Tensorflow**: Powers the deep learning pipeline, including model building, training, evaluation, and inference for detecting pneumonia from chest X-ray images with a custom Convolutional Neural Network.
 
----
-## 📦 Setup & Installation
-### 1️⃣ Prerequisites
-Ensure you have the following installed:
-- **Docker** & **Docker Compose**
-- Python (for local testing)
+## 🏃 Running Locally (Without Docker)
 
-### 2️⃣ Clone the Repository
+To run the application directly on your local machine without Docker:
+
+### 1️⃣ Clone the Repository
 ```bash
 git clone https://github.com/Abasi-ifreke/medical-imaging.git
 cd medical-imaging
 ```
 
-### 3️⃣ Build and Run the Containers
+### 2️⃣ Create and activate a virtual environment (recommended)
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+### 3️⃣ Install dependencies
+```bash
+pip install -r requirements.txt
+```
+*Note: You may need to install `torch`, `tensorflow`, `fastapi`, `streamlit`, `uvicorn`, `pillow`, and other required libraries if requirements.txt is not provided.*
+
+### 4️⃣ Train or download the model
+- **Train your model:**  
+  Run the following command if you want to train a new model:
+  ```bash
+  python app/train.py
+  ```
+  This will save a model file (e.g., `pneumonia_model.h5`) in the `app/` directory.
+
+
+### 5️⃣ Start the FastAPI backend
+```bash
+python app/backend.py
+```
+The backend will be available at [http://localhost:8000](http://localhost:8000).
+
+### 6️⃣ Start the Streamlit frontend
+In a new terminal (with the virtual environment activated), run:
+```bash
+streamlit run app/frontend.py
+```
+The frontend will open at [http://localhost:8501](http://localhost:8501).
+
+Now you can upload X-ray images and receive pneumonia predictions on your local machine!
+
+
+## 🏃 Running With Docker
+### 1️⃣ Prerequisites
+Ensure you have the following installed:
+- **Docker** & **Docker Compose**
+- Python (for local testing)
+
+### 2️⃣ Build and Run the Containers
 ```bash
 docker compose up --build
 ```

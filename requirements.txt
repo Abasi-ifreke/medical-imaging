@@ -1,0 +1,13 @@
+fastapi==0.115.11
+uvicorn==0.34.0
+tensorflow
+pillow==11.1.0
+numpy==2.2.3
+requests==2.32.3
+streamlit==1.43.1
+python-multipart==0.0.20
+matplotlib==3.10.0
+keras==3.10.0
+keras-tuner==1.4.2
+keras-cv==0.5.0
+scipy
