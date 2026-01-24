@@ -54,6 +54,19 @@ This will:
 4. The backend model will predict whether the image shows pneumonia or not.
 
 ---
+## 🖼️ Example Results
+
+### 1️⃣ Home Page
+<img src="home.png" alt="Home Page" width="600"/>
+
+### 2️⃣ Uploading a Chest X-ray
+<img src="image upload.png" alt="Uploading Chest Xray" width="600"/>
+
+### 3️⃣ Prediction Output
+<img src="prediction.png" alt="Prediction Result" width="600"/>
+
+
+---
 ## ⚙️ Project Structure
 ```
 📂 medical-imaging/
