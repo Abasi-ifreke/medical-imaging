@@ -30,10 +30,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only the necessary files from the build stage
-COPY ./app/backend.py .
+COPY backend.py .
 
 # Copy the trained model
-COPY ./app/pneumonia_model.h5 .
+COPY pneumonia_model.h5 .
 
 # # Copy trained model
 # COPY --from=builder /app/pneumonia_model.h5 .
