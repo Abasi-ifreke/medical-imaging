@@ -1,7 +1,5 @@
 .venv
 
-app/pneumonia_model.h5
-
 app/best_model.h5
 
 pneumonia_model.h5
