@@ -23,7 +23,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy only requirements first to leverage caching
-COPY ./app/requirements.txt .
+COPY requirements.txt .
 
 # Install runtime dependencies only (minimal footprint)
 # COPY --from=builder /app/requirements.txt .
