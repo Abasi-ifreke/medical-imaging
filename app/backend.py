@@ -1,13 +1,35 @@
+import os
 import tensorflow as tf
+from google.cloud import storage
 from fastapi import FastAPI, UploadFile, File
 from PIL import Image
 import numpy as np
 import io
 
+BUCKET_NAME = os.getenv("MODEL_BUCKET")
+MODEL_BLOB_NAME = os.getenv("MODEL_NAME")
+LOCAL_MODEL_PATH = "/pneumonia_model.h5"
+
+# -----------------------------
+# Download model from GCS (if not already downloaded)
+# -----------------------------
+def download_model():
+    if not os.path.exists(LOCAL_MODEL_PATH):
+        print("Downloading model from GCS...")
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(MODEL_BLOB_NAME)
+        blob.download_to_filename(LOCAL_MODEL_PATH)
+        print("Model downloaded successfully.")
+    else:
+        print("Model already exists locally.")
+
+download_model()
+
 # -----------------------------
 # Load Pneumonia model
 # -----------------------------
-pneumonia_model = tf.keras.models.load_model("pneumonia_model.h5")
+pneumonia_model = tf.keras.models.load_model(LOCAL_MODEL_PATH)
 
 # -----------------------------
 # FastAPI setup
