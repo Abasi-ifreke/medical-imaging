@@ -1,8 +1,6 @@
 services:
   med-app:
-    build:
-      context: .
-      dockerfile: ./app/Dockerfile
+    build: ./app
     container_name: med-app
     ports:
       - "8000:8000"

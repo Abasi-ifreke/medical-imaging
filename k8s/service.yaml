@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: med-app
+  namespace: medical-imaging
+spec:
+  selector:
+    app: med-app
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: med-frontend
+  namespace: medical-imaging
+spec:
+  selector:
+    app: med-frontend
+  ports:
+  - protocol: TCP
+    port: 8501
+    targetPort: 8501
+  type: LoadBalancer

@@ -22,8 +22,8 @@ COPY backend.py .
 EXPOSE 8000
 
 # Environment variables (can be overridden at runtime)
-ENV MODEL_BUCKET=""
-ENV MODEL_NAME=""
+# ENV MODEL_BUCKET=""
+ENV MODEL_PATH=""
 
 # Start FastAPI
 CMD ["uvicorn", "backend:app", "--host", "0.0.0.0", "--port", "8000"]

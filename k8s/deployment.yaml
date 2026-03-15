@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: med-app
+  namespace: medical-imaging
+  labels:
+    app: med-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: med-app
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+      labels:
+        app: med-app
+    spec:
+      volumes:
+      - name: gcsfuse-ml
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: false
+          volumeAttributes:
+            bucketName: ml-project-0112
+            mountOptions: "implicit-dirs"
+      serviceAccountName: med-app-sa
+      containers:
+      # - name: gcsfuse
+      #   image: gke.gcr.io/gcs-fuse-csi-driver-sidecar-mounter:v1
+      #   securityContext:
+      #     privileged: true
+      #   volumeMounts:
+      #   - name: gcsfuse-ml
+      #     mountPath: /data
+      - name: med-app
+        image: abasiifrekeuwem/med-app:v2
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: gcsfuse-ml
+          mountPath: /data
+          readOnly: true
+        env:
+          - name: MODEL_PATH
+            valueFrom:
+              configMapKeyRef:
+                name: med-app-config
+                key: MODEL_PATH
+          # - name: MODEL_NAME
+          #   valueFrom:
+          #     configMapKeyRef:
+          #       name: med-app-config
+          #       key: MODEL_NAME
+        ports: 
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "6Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: med-frontend
+  namespace: medical-imaging
+  labels:
+    app: med-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: med-frontend
+  template:
+    metadata:
+      labels:
+        app: med-frontend
+    spec:
+      containers:
+      - name: med-frontend
+        image: abasiifrekeuwem/med-frontend:v1
+        imagePullPolicy: Always
+        ports: 
+        - containerPort: 8501
+        env:
+          - name: API_URL
+            valueFrom:
+              configMapKeyRef:
+                name: med-frontend-config
+                key: API_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: med-frontend-config
+  namespace: medical-imaging
+data:
+  API_URL: "http://med-app:8000/predict"
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: med-app-config
+  namespace: medical-imaging
+data:
+  MODEL_PATH: "/data/pneumonia_model.h5"
+  # MODEL_PATH: "ml-project-0112"
+  # MODEL_NAME: "pneumonia_model.h5"

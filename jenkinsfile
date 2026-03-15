@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+    
+    tools {
+        dockerTool 'docker'
+    }
+    
+    environment {
+        FRONTEND_IMAGE = "med-frontend"
+        FRONTEND_TAG = "v1"
+        BACKEND_IMAGE = "med-app"
+        BACKEND_TAG = "v1"
+        GOOGLE_CLOUD_PROJECT = credentials('gcp-project-id')
+        GOOGLE_SERVICE_ACCOUNT = credentials('gcp-service-account')
+        REGISTRY_URL = credentials("registry-url")
+        REPO_NAME = "medical-imaging"
+        SCANNER_HOME = tool "sonar-scanner"
+    }
+
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git credentialsId: 'PATJenkins', url: 'https://github.com/Abasi-ifreke/medical-imaging.git'
+            }
+        }
+        
+        stage('GitLeaks Scan') {
+            steps {
+                sh 'gitleaks detect --source ./app --exit-code 1'
+                sh 'gitleaks detect --source ./frontend --exit-code 1'
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=MLProject \
+                    -Dsonar.projectKey=MLProject '''
+                }
+            }
+        }
+        
+        stage('Quality Gate Check') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarqube'
+                }
+            }
+        }
+        
+        stage('Trivy FS dependency scan') {
+            steps {
+                sh 'trivy fs --format table -o fs-report.html .'
+            }
+        }
+        
+        stage('Build and Push Frontend to Artifact Repository') {
+            steps {
+                dir('frontend') {
+                    sh "docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG} ."
+                }
+                withCredentials([file(credentialsId: 'gcp-service-account', variable: 'GOOGLE_SERVICE_ACCOUNT')]) {
+                    sh 'cat "${GOOGLE_SERVICE_ACCOUNT}" | docker login -u _json_key --password-stdin https://"${REGISTRY_URL}"'
+                    sh "docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG}"
+                }
+            }
+        }
+        
+        stage('Build and Push Backend to Artifact Repository') {
+            steps {
+                dir('app') {
+                    sh "docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG} ."
+                }
+                sh 'cat "${GOOGLE_SERVICE_ACCOUNT}" | docker login -u _json_key --password-stdin https://"${REGISTRY_URL}"'
+                sh "docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG}"
+            }
+        }
+        
+        stage('Clean up unused resources') {
+            steps {
+                sh 'docker image prune -f'
+            }
+        }
+    }
+}

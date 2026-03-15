@@ -1,35 +1,39 @@
 import os
 import tensorflow as tf
-from google.cloud import storage
+# from google.cloud import storage
 from fastapi import FastAPI, UploadFile, File
 from PIL import Image
 import numpy as np
 import io
 
-BUCKET_NAME = os.getenv("MODEL_BUCKET")
-MODEL_BLOB_NAME = os.getenv("MODEL_NAME")
-LOCAL_MODEL_PATH = "/pneumonia_model.h5"
+# BUCKET_NAME = os.getenv("MODEL_BUCKET")
+# MODEL_BLOB_NAME = os.getenv("MODEL_NAME")
+
+# Model Path from mounted GCS bucket
+MODEL_PATH = os.getenv("MODEL_PATH", "/pneumonia_model.h5")
+
+print(f"Loading model from: {MODEL_PATH}")
 
 # -----------------------------
 # Download model from GCS (if not already downloaded)
 # -----------------------------
-def download_model():
-    if not os.path.exists(LOCAL_MODEL_PATH):
-        print("Downloading model from GCS...")
-        client = storage.Client()
-        bucket = client.bucket(BUCKET_NAME)
-        blob = bucket.blob(MODEL_BLOB_NAME)
-        blob.download_to_filename(LOCAL_MODEL_PATH)
-        print("Model downloaded successfully.")
-    else:
-        print("Model already exists locally.")
+# def download_model():
+#     if not os.path.exists(LOCAL_MODEL_PATH):
+#         print("Downloading model from GCS...")
+#         client = storage.Client()
+#         bucket = client.bucket(BUCKET_NAME)
+#         blob = bucket.blob(MODEL_BLOB_NAME)
+#         blob.download_to_filename(LOCAL_MODEL_PATH)
+#         print("Model downloaded successfully.")
+#     else:
+#         print("Model already exists locally.")
 
-download_model()
+# download_model()
 
 # -----------------------------
 # Load Pneumonia model
 # -----------------------------
-pneumonia_model = tf.keras.models.load_model(LOCAL_MODEL_PATH)
+pneumonia_model = tf.keras.models.load_model(MODEL_PATH)
 
 # -----------------------------
 # FastAPI setup
@@ -40,8 +44,12 @@ def preprocess_image(image: Image.Image, target_size=(224, 224)):
     """Resize and normalize image for TensorFlow model."""
     image = image.resize(target_size)
     img_array = np.array(image).astype("float32") / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
     return img_array
+
+@app.get("/health")
+async def get_health():
+    return {"status": "healthy"}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
