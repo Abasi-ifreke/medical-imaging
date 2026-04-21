@@ -9,3 +9,5 @@ pneumonia_model.h5
 best_model.h5
 
 creds/
+
+k8s/jenkins-secret.yaml

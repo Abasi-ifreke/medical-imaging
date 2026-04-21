@@ -15,6 +15,8 @@ pipeline {
         REGISTRY_URL = credentials("registry-url")
         REPO_NAME = "medical-imaging"
         SCANNER_HOME = tool "sonar-scanner"
+        CLUSTER_NAME = credentials("cluster-name") 
+        CLUSTER_ZONE = credentials("cluster-zone")
     }
 
     stages {
@@ -57,11 +59,11 @@ pipeline {
         stage('Build and Push Frontend to Artifact Repository') {
             steps {
                 dir('frontend') {
-                    sh "docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG} ."
+                    sh 'docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG} .'
                 }
                 withCredentials([file(credentialsId: 'gcp-service-account', variable: 'GOOGLE_SERVICE_ACCOUNT')]) {
                     sh 'cat "${GOOGLE_SERVICE_ACCOUNT}" | docker login -u _json_key --password-stdin https://"${REGISTRY_URL}"'
-                    sh "docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG}"
+                    sh 'docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG}'
                 }
             }
         }
@@ -69,16 +71,46 @@ pipeline {
         stage('Build and Push Backend to Artifact Repository') {
             steps {
                 dir('app') {
-                    sh "docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG} ."
+                    sh 'docker build -t ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG} .'
                 }
                 sh 'cat "${GOOGLE_SERVICE_ACCOUNT}" | docker login -u _json_key --password-stdin https://"${REGISTRY_URL}"'
-                sh "docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG}"
+                sh 'docker push ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG}'
             }
         }
         
+        stage('Authenticate to GCP') { 
+            steps { 
+                withCredentials([file(credentialsId: 'gcp-service-account', variable: 'GOOGLE_SERVICE_ACCOUNT')]) { 
+                    sh ''' 
+                        gcloud auth activate-service-account --key-file="$GOOGLE_SERVICE_ACCOUNT"
+                        gcloud config set project $GOOGLE_CLOUD_PROJECT 
+                    ''' 
+                } 
+            } 
+        }
+        stage('Connect to GKE') { 
+            steps { 
+                sh ''' 
+                    gcloud container clusters get-credentials $CLUSTER_NAME \
+                    --zone $CLUSTER_ZONE --project $GOOGLE_CLOUD_PROJECT 
+                ''' 
+            } 
+        }
+        stage('Deploy to GKE') { 
+            steps { 
+                sh ''' 
+                    kubectl apply -f k8s/ 
+                    # Force rollout to pick new image 
+                    kubectl rollout restart deployment med-app -n medical-imaging || true 
+                    kubectl rollout restart deployment med-frontend -n medical-imaging || true 
+                ''' 
+            }
+        }
         stage('Clean up unused resources') {
             steps {
-                sh 'docker image prune -f'
+                sh 'docker rmi ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG}'
+                sh 'docker rmi ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG}'
+                sh 'docker rmi python:3.12-slim'
             }
         }
     }
