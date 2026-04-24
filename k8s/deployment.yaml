@@ -27,13 +27,6 @@ spec:
             mountOptions: "implicit-dirs"
       serviceAccountName: med-app-sa
       containers:
-      # - name: gcsfuse
-      #   image: gke.gcr.io/gcs-fuse-csi-driver-sidecar-mounter:v1
-      #   securityContext:
-      #     privileged: true
-      #   volumeMounts:
-      #   - name: gcsfuse-ml
-      #     mountPath: /data
       - name: med-app
         image: abasiifrekeuwem/med-app:v2
         imagePullPolicy: Always
@@ -47,11 +40,6 @@ spec:
               configMapKeyRef:
                 name: med-app-config
                 key: MODEL_PATH
-          # - name: MODEL_NAME
-          #   valueFrom:
-          #     configMapKeyRef:
-          #       name: med-app-config
-          #       key: MODEL_NAME
         ports: 
         - containerPort: 8000
         resources:
@@ -142,5 +130,3 @@ metadata:
   namespace: medical-imaging
 data:
   MODEL_PATH: "/data/pneumonia_model.h5"
-  # MODEL_PATH: "ml-project-0112"
-  # MODEL_NAME: "pneumonia_model.h5"
