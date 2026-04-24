@@ -28,7 +28,7 @@ spec:
       serviceAccountName: med-app-sa
       containers:
       - name: med-app
-        image: abasiifrekeuwem/med-app:v2
+        image: ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${BACKEND_IMAGE}:${BACKEND_TAG}
         imagePullPolicy: Always
         volumeMounts:
         - name: gcsfuse-ml
@@ -83,7 +83,7 @@ spec:
     spec:
       containers:
       - name: med-frontend
-        image: abasiifrekeuwem/med-frontend:v1
+        image: ${REGISTRY_URL}/${GOOGLE_CLOUD_PROJECT}/${REPO_NAME}/${FRONTEND_IMAGE}:${FRONTEND_TAG}
         imagePullPolicy: Always
         ports: 
         - containerPort: 8501
