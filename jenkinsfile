@@ -17,6 +17,7 @@ pipeline {
         SCANNER_HOME = tool "sonar-scanner"
         CLUSTER_NAME = credentials("cluster-name") 
         CLUSTER_ZONE = credentials("cluster-zone")
+        NAMESPACE = credentials("namespace")
     }
 
     stages {
@@ -99,7 +100,9 @@ pipeline {
         stage('Deploy to GKE') { 
             steps { 
                 sh ''' 
-                    kubectl apply -f k8s/ 
+                    kubectl create ns $NAMESPACE || true
+                    # kubectl apply -f k8s/ 
+                    envsubst < k8s/deployment.yaml | kubectl apply -f -
                     # Force rollout to pick new image 
                     kubectl rollout restart deployment med-app -n medical-imaging || true 
                     kubectl rollout restart deployment med-frontend -n medical-imaging || true 
