@@ -12,7 +12,6 @@ spec:
     targetPort: 8000
   type: ClusterIP
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -25,4 +24,18 @@ spec:
   - protocol: TCP
     port: 8501
     targetPort: 8501
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: med-admin
+  namespace: medical-imaging
+spec:
+  selector:
+    app: med-admin
+  ports:
+  - protocol: TCP
+    port: 8502
+    targetPort: 8502
   type: LoadBalancer
