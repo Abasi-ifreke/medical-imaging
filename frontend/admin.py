@@ -332,7 +332,12 @@ def show_predictions_tab():
         result_icon = "🔴" if pred["result"] == "Pneumonia" else "🟢"
         with st.expander(f"{result_icon} {pred['result']} - {pred.get('user_email', 'Unknown')} - {pred['created_at'][:10]}"):
             st.write(f"**Prediction ID:** {pred['id']}")
-            st.write(f"**User:** {pred.get('user_email', f'User ID: {pred[\"user_id\"]}')}") 
+            user_display = pred.get(
+                "user_email",
+                f"User ID: {pred['user_id']}"
+            )
+
+            st.write(f"**User:** {user_display}") 
             st.write(f"**File:** {pred['image_filename']}")
             st.write(f"**Result:** {pred['result']}")
             st.write(f"**Confidence:** {pred['confidence']*100:.1f}%")

@@ -7,7 +7,7 @@ import numpy as np
 import io
 from typing import Optional
 from sqlalchemy.orm import Session
-
+from google.cloud import storage
 from database import get_db, init_db
 from models import User, Prediction
 from auth import (
@@ -30,7 +30,27 @@ from schemas import (
 )
 import crud
 
-MODEL_PATH = os.getenv("MODEL_PATH", "/pneumonia_model.h5")
+BUCKET_NAME = os.getenv("MODEL_BUCKET")
+MODEL_BLOB_NAME = os.getenv("MODEL_NAME")
+LOCAL_MODEL_PATH = "/pneumonia_model.h5"
+
+# -----------------------------
+# Download model from GCS (if not already downloaded)
+# -----------------------------
+def download_model():
+    if not os.path.exists(LOCAL_MODEL_PATH):
+        print("Downloading model from GCS...")
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(MODEL_BLOB_NAME)
+        blob.download_to_filename(LOCAL_MODEL_PATH)
+        print("Model downloaded successfully.")
+    else:
+        print("Model already exists locally.")
+
+download_model()
+
+MODEL_PATH = LOCAL_MODEL_PATH
 
 print(f"Loading model from: {MODEL_PATH}")
 
@@ -46,8 +66,8 @@ def on_startup():
     
     db = next(get_db())
     try:
-        admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
-        admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
+        admin_email = os.getenv("ADMIN_EMAIL")
+        admin_password = os.getenv("ADMIN_PASSWORD")
         
         existing_admin = crud.get_user_by_email(db, admin_email)
         if not existing_admin:

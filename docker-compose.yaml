@@ -2,10 +2,6 @@ services:
   db:
     image: postgres:16-alpine
     container_name: med-db
-    environment:
-      POSTGRES_USER: meduser
-      POSTGRES_PASSWORD: medpassword
-      POSTGRES_DB: medical_imaging
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -22,12 +18,8 @@ services:
     container_name: med-app
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://meduser:medpassword@db:5432/medical_imaging
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      - MODEL_PATH=/app/pneumonia_model.h5
+    env_file:
+      - .env
     volumes:
       - ./creds:/creds:ro
     depends_on:

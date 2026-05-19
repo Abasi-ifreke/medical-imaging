@@ -13,3 +13,5 @@ creds/
 k8s/jenkins-secret.yaml
 
 k8s/secrets.yaml
+
+jenkinsfile
